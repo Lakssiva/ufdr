@@ -40,6 +40,8 @@ function normalizeRecord(raw, sourceFile) {
     raw.from || raw.From ||
     raw.source_number || raw.Source_Number || raw.sourceNumber ||
     raw.Contact || raw.contact ||
+    raw["Contact/Number"] || raw["Contact_or_Number"] ||
+    raw.name_or_number || raw.Name_or_Number ||
     raw.Number || raw.number ||
     raw.Sender || raw.sender || "";
 
@@ -59,10 +61,14 @@ function normalizeRecord(raw, sourceFile) {
   const content =
     raw.content || raw.Content ||
     raw.message || raw.Message ||
+    raw.message_content || raw.Message_Content ||
     raw.body || raw.Body ||
     raw.Message_Excerpt ||
+    raw.Description || raw.description ||
     raw.Activity_Description ||
-    raw.Detected_Crypto_Address || "";
+    raw.URL || raw.url || raw.url_shared ||
+    raw.Detected_Crypto_Address ||
+    raw.Crypto_Address || raw.crypto_address || "";
 
   // Resolve country
   const country =
@@ -73,15 +79,31 @@ function normalizeRecord(raw, sourceFile) {
   const source =
     raw.source || raw.Source ||
     raw.Platform || raw.platform ||
+    raw["Platform/Type"] || raw["Platform_or_CallType"] ||
     raw.Call_Type || raw.call_type ||
     sourceFile || "UFDR";
 
-  const type = guessType(raw);
+  // Record_Type / Category column maps to type
+  const recordType = String(
+    raw.Record_Type || raw.record_type ||
+    raw.Category || raw.category || ""
+  ).toLowerCase();
 
-  const durationSeconds = parseDuration(
-    raw.durationSeconds || raw.duration_seconds ||
-    raw.Duration || raw.duration || ""
-  );
+  const type = recordType.includes("call") || recordType.includes("long_call") || recordType.includes("foreign_comm") && (raw.Duration || raw.duration)
+    ? "call"
+    : recordType.includes("contact")
+    ? "contact"
+    : recordType.includes("chat") || recordType.includes("crypto_chat") || recordType.includes("shared_url") || recordType.includes("suspicious")
+    ? "chat"
+    : guessType(raw);
+
+  // duration_minutes column (ufdr_supported_records_dataset)
+  const durationSeconds = raw.duration_minutes
+    ? parseFloat(raw.duration_minutes) * 60
+    : parseDuration(
+        raw.durationSeconds || raw.duration_seconds ||
+        raw.Duration || raw.duration || ""
+      );
 
   const record = {
     type,
@@ -98,9 +120,10 @@ function normalizeRecord(raw, sourceFile) {
     metadata: raw
   };
 
-  // Extra: if crypto address column exists, append to content
-  if (raw.Detected_Crypto_Address && !record.content.includes(raw.Detected_Crypto_Address)) {
-    record.content = `${record.content} ${raw.Detected_Crypto_Address}`.trim();
+  // Append any crypto address columns to content so flags fire
+  const cryptoVal = raw.Detected_Crypto_Address || raw.Crypto_Address || raw.crypto_address || raw.url_shared || raw.URL || "";
+  if (cryptoVal && !record.content.includes(cryptoVal)) {
+    record.content = `${record.content} ${cryptoVal}`.trim();
   }
 
   // Extra: risk level as suspicious flag
@@ -116,11 +139,21 @@ function normalizeRecord(raw, sourceFile) {
 async function parseCSV(filePath, sourceFile) {
   return new Promise((resolve, reject) => {
     const records = [];
+    // peek first line to detect if file has headers
+    const firstLine = fs.readFileSync(filePath, "utf8").split("\n")[0] || "";
+    const hasHeaders = /[a-zA-Z_]/.test(firstLine.split(",")[0]);
+
+    const options = hasHeaders ? {} : {
+      headers: ["type","from","country","source","timestamp","duration_minutes","content","crypto_address","url_shared","to","case_id","device_id"]
+    };
+
     fs.createReadStream(filePath)
-      .pipe(csv())
+      .pipe(csv(options))
       .on("data", (row) => {
+        // merge crypto_address and url_shared into content if present
+        if (row.crypto_address) row.content = `${row.content || ""} ${row.crypto_address}`.trim();
+        if (row.url_shared) row.content = `${row.content || ""} ${row.url_shared}`.trim();
         const r = normalizeRecord(row, sourceFile);
-        // skip completely empty rows
         if (r.from || r.to || r.content || r.timestamp) records.push(r);
       })
       .on("end", () => resolve(records))
