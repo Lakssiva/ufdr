@@ -72,6 +72,9 @@ export async function generateReport(payload) {
   const filename = match?.[1] || "Investigation_Report.pdf";
   return { blob: response.data, filename };
 }
+export async function fetchTimeline(scope = { sourceScope: "latest", sourceFile: "" }) {
+  return apiGet("/timeline", { params: { sourceScope: scope.sourceScope, sourceFile: scope.sourceFile } });
+}
 export async function fetchSuspects() { const data = await apiGet("/suspects"); return data.suspects || []; }
 export async function fetchSuspectProfile(number) { return apiGet("/suspects/profile", { params: { number } }); }
 export async function generateAiSummary() { const response = await apiPost("/dashboard/ai-summary", {}); return response.data; }

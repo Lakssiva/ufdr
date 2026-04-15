@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchQuerySources } from "../api/client";
-import axios from "axios";
+import { fetchQuerySources, fetchTimeline } from "../api/client";
 
 const FLAG_COLORS = { CRYPTO: "#d29922", FOREIGN: "#4493f8", LONG_CALL: "#f85149", LINK: "#6e7681", SUSPICIOUS: "#f85149", PHONE_IN_TEXT: "#3fb950" };
 const TYPE_COLORS = { chat: "#3fb950", call: "#4493f8", contact: "#6e7681" };
@@ -23,14 +22,8 @@ function TimelinePage() {
     async function load() {
       try {
         setLoading(true); setError("");
-        const params = { sourceScope, sourceFile: sourceScope === "file" ? selectedSourceFile : "" };
-        const candidates = ["/api", "http://127.0.0.1:5000/api", "http://localhost:5000/api"];
-        let data = null;
-        for (const base of candidates) {
-          try { const res = await axios.get(`${base}/timeline`, { params, timeout: 12000 }); data = res.data; break; }
-          catch (_e) { continue; }
-        }
-        if (!data) throw new Error("Could not reach API");
+        const scope = { sourceScope, sourceFile: sourceScope === "file" ? selectedSourceFile : "" };
+        const data = await fetchTimeline(scope);
         setRecords(data.records || []);
       } catch (err) { setError(err.message); }
       finally { setLoading(false); }
