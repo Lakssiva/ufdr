@@ -12,18 +12,12 @@ function DashboardPage() {
 
   async function loadDashboard() {
     setLoading(true); setError("");
-    let lastError = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const result = await fetchDashboard();
-        setData(result); setLoading(false); return;
-      } catch (err) {
-        lastError = err;
-        await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
-      }
-    }
-    setError(lastError?.response?.data?.error || lastError?.message || "Network error");
-    setLoading(false);
+    try {
+      const result = await fetchDashboard();
+      setData(result);
+    } catch (err) {
+      setError(err?.response?.data?.error || err?.message || "Network error");
+    } finally { setLoading(false); }
   }
 
   useEffect(() => { loadDashboard(); }, []);

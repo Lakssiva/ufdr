@@ -67,10 +67,9 @@ export async function fetchReports(scope = { sourceScope: "all", sourceFile: "" 
 }
 export async function generateReport(payload) {
   const response = await apiPost("/reports/generate", payload, { responseType: "blob" });
-  const contentDisposition = response.headers["content-disposition"] || "";
-  const match = contentDisposition.match(/filename=\\"?([^\\";]+)\\"?/i);
-  const filename = match?.[1] || "Investigation_Report.pdf";
-  return { blob: response.data, filename };
+  const safeName = (payload.template || "Investigation_Report").replace(/\s+/g, "_");
+  const ext = payload.format === "CSV" ? "csv" : "pdf";
+  return { blob: response.data, filename: `${safeName}.${ext}` };
 }
 export async function fetchTimeline(scope = { sourceScope: "latest", sourceFile: "" }) {
   return apiGet("/timeline", { params: { sourceScope: scope.sourceScope, sourceFile: scope.sourceFile } });

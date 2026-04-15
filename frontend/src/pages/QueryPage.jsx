@@ -72,10 +72,7 @@ function QueryPage() {
           <h3>Answer</h3>
           <p>{response.answer || "No answer generated."}</p>
           <p>Answer Engine: <strong>{response.answerProvider || "rules"}</strong></p>
-          {response.answerNote && <p className="error">Answer fallback: {response.answerNote}</p>}
           <h3>Evidence Results</h3>
-          <p>Interpreter: <strong>{response.interpreter || "rules"}</strong></p>
-          {response.interpreterNote && <p className="error">HF fallback: {response.interpreterNote}</p>}
           <p>Data scope: <strong>{response.sourceFile || response.sourceScope}</strong></p>
           <p>{response.summary}</p>
           <div className="table-wrap">
