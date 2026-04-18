@@ -48,7 +48,7 @@ function DashboardPage() {
         <h1>Investigation Dashboard</h1>
         <p>Overview of digital forensic evidence and alerts</p>
       </header>
-      {data?.isDemoData && <div className="notice warning">Dashboard is currently showing seeded demo data.</div>}
+      {data?.isDemoData && <div className="notice warning">Dashboard is currently showing sample records.</div>}
       <div className="card-grid">
         <StatCard title="Total Records" value={metrics.totalRecords || 0} subtitle="Extracted from UFDR" />
         <StatCard title="Total Chats" value={metrics.totalChats || 0} subtitle="WhatsApp, Telegram, Signal" />

@@ -4,7 +4,7 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 const { connectDB } = require("./config/db");
-const { ensureDemoData } = require("./services/bootstrapService");
+const { ensureBootstrapData } = require("./services/bootstrapService");
 const apiRoutes = require("./routes");
 
 const app = express();
@@ -21,7 +21,7 @@ const port = process.env.PORT || 5000;
 const mongoUri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/ufdr_ai";
 
 connectDB(mongoUri)
-  .then(ensureDemoData)
+  .then(ensureBootstrapData)
   .then(() => {
     app.listen(port, () => console.log(`Server running on port ${port}`));
   })

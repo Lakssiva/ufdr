@@ -1,5 +1,6 @@
 import axios from "axios";
 
+const AUTH_STORAGE_KEY = "ufdr_auth";
 const apiCandidates = [
   import.meta.env.VITE_API_BASE_URL,
   "/api",
@@ -8,6 +9,26 @@ const apiCandidates = [
 ].filter(Boolean);
 
 let activeBaseUrl = apiCandidates[0];
+
+function getAuthToken() {
+  try {
+    const session = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || "null");
+    return session?.token || "";
+  } catch (_error) {
+    return "";
+  }
+}
+
+function buildConfig(config = {}) {
+  const token = getAuthToken();
+  return {
+    ...config,
+    headers: {
+      ...(config.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    }
+  };
+}
 
 function shouldRetry(error) {
   if (!error) return false;
@@ -34,13 +55,59 @@ async function withFallback(call) {
 }
 
 async function apiGet(url, config = {}) {
-  const response = await withFallback((baseURL) => axios.get(`${baseURL}${url}`, { timeout: 12000, ...config }));
+  const response = await withFallback((baseURL) => axios.get(`${baseURL}${url}`, { timeout: 12000, ...buildConfig(config) }));
   return response.data;
 }
 
 async function apiPost(url, body, config = {}) {
-  const response = await withFallback((baseURL) => axios.post(`${baseURL}${url}`, body, { timeout: 20000, ...config }));
+  const response = await withFallback((baseURL) => axios.post(`${baseURL}${url}`, body, { timeout: 20000, ...buildConfig(config) }));
   return response;
+}
+
+export function getStoredSession() {
+  try {
+    const session = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || "null");
+    if (!session?.token || !session?.user?.officerId) return null;
+    return session;
+  } catch (_error) {
+    return null;
+  }
+}
+
+export function clearStoredSession() {
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+  localStorage.removeItem("ufdr_officer");
+}
+
+function persistSession(session) {
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+  localStorage.setItem("ufdr_officer", session.user.officerId);
+}
+
+export async function loginOfficer(officerId, password) {
+  const response = await apiPost("/auth/login", { officerId, password });
+  const session = response.data;
+  persistSession(session);
+  return session;
+}
+
+export async function registerOfficer({ name, officerId, password }) {
+  const response = await apiPost("/auth/register", { name, officerId, password });
+  const session = response.data;
+  persistSession(session);
+  return session;
+}
+
+export async function fetchCurrentUser() {
+  const data = await apiGet("/auth/me");
+  const existing = getStoredSession();
+  if (existing?.token && data?.user) {
+    const next = { token: existing.token, user: data.user };
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next));
+    localStorage.setItem("ufdr_officer", data.user.officerId);
+    return next;
+  }
+  return null;
 }
 
 export async function fetchDashboard() { return apiGet("/dashboard"); }

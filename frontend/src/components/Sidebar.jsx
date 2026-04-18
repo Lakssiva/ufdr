@@ -12,7 +12,7 @@ const navItems = [
   { to: "/history", label: "Query History" }
 ];
 
-function Sidebar({ officer, onLogout }) {
+function Sidebar({ officerId, onLogout }) {
   return (
     <aside className="sidebar">
       <div>
@@ -30,14 +30,14 @@ function Sidebar({ officer, onLogout }) {
               to={item.to}
               className={({ isActive }) => `nav-item ${isActive ? "nav-item-active" : ""}`}
             >
-              {item.label}
+              <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
       </div>
       <div className="sidebar-footer">
-        <p>Logged in as</p>
-        <h3>{officer}</h3>
+        <p>Active Officer</p>
+        <h3>{officerId}</h3>
         <button type="button" className="logout-btn" onClick={onLogout}>Logout</button>
       </div>
     </aside>

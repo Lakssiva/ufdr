@@ -5,6 +5,8 @@ const { uploadUfdr } = require("../controllers/uploadController");
 const { queryEvidence, getQueryExamples, getQuerySources, cleanupInvalidRecords } = require("../controllers/queryController");
 const { getDashboard, getLinks, getRecentActivity, getLocations, getLocationSampleCsv, getSuspects, getSuspectProfile, getTimeline, getAiSummary } = require("../controllers/dashboardController");
 const { getReports, generateReport } = require("../controllers/reportController");
+const { getCurrentUser, login, register } = require("../controllers/authController");
+const { requireAuth } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -14,6 +16,11 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+router.post("/auth/login", login);
+router.post("/auth/register", register);
+router.get("/auth/me", requireAuth, getCurrentUser);
+
+router.use(requireAuth);
 router.post("/upload-ufdr", upload.single("file"), uploadUfdr);
 router.post("/query", queryEvidence);
 router.get("/query/examples", getQueryExamples);
